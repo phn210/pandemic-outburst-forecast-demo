@@ -43,18 +43,9 @@ def predict(df, x):
     test_linear_pred = linear_model.predict(poly_y_test)
     linear_pred = linear_model.predict(poly_y)
 
-    file_name = "Predict_for_Test"
-    output_file_path =  "data/" + file_name
-
-    df_output = pd.DataFrame()
-    df_output['predict_confirmed_case'] = linear_pred
     for i in range(x):
         X_train = numpy.append(X_train, 0)
         date = numpy.append(date, 'Null')
-    df_output['confirmed_case'] = X_train
-    df_output['observation_date'] = date
-    df_output.to_csv(output_file_path)
-    print(df_output)
     
     return {
         "linear_pred_y" : list(map(array_to_single_index, y.tolist())),

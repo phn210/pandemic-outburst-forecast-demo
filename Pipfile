@@ -13,6 +13,8 @@ flask-cors = "*"
 autopep8 = "*"
 firebase-admin = "*"
 gunicorn = "*"
+requests = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 
