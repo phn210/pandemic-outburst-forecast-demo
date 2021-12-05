@@ -86,7 +86,7 @@ def interval():
     while True:
         i+=1
         print(i)
-        time.sleep(24 * 60 * 60)
+        time.sleep(5)
         db.collection(u'interval_count').document(u'count').set({u'value' : i})
         
 
