@@ -50,6 +50,10 @@ def extract_firebase_item(item):
 def sort_key(item):
     return item['date']
 
+@app.route("/increase-test", methods=['GET', 'POST'])
+def increase_test():
+    db.collection(u'interval_count').document(u'count').set({u'value' : "test"})
+
 @app.route('/get-data', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
