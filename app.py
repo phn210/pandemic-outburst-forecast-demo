@@ -5,6 +5,8 @@ import pandas as pd
 from firebase.firebase import db;
 from firebase_admin import firestore
 from datetime import datetime
+import time
+from multiprocessing import Process, Lock
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -79,8 +81,18 @@ def index():
             
     return jsonify({"code": 1})
 
+def interval():
+    i = 0
+    while True:
+        i+=1
+        print(i)
+        time.sleep(24 * 60 * 60)
+        db.collection(u'interval_count').document(u'count').set({u'value' : i})
+        
 
 if __name__ == '__main__':
     app.debug = True
+    p = Process(target=interval).start()
     app.run()
+    
 
