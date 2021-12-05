@@ -19,6 +19,10 @@ ENV = 'dev'
 
 if ENV == 'dev':
     app.debug = True
+
+@app.before_first_request
+def execute_this():
+    threading.Thread(target=interval).start()
     
 @app.route("/realtime-data", methods=['POST', 'GET'])
 def get_realtime_data():
@@ -89,6 +93,7 @@ def index():
     return jsonify({"code": 1})
 
 def interval():
+    time.sleep(5)
     i = 0
     while True:
         i+=1
@@ -96,11 +101,12 @@ def interval():
         time.sleep(5)
         db.collection(u'interval_count').document(u'count').set({u'value' : i})
         
+def start_app():
+    threading.Thread(target=app.run).start()  
     
 
 if __name__ == '__main__':
     app.debug = True
-    threading.Thread(target=interval).start()
     app.run()
     
 
