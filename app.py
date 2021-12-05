@@ -7,6 +7,7 @@ from firebase_admin import firestore
 from datetime import datetime
 import time
 from multiprocessing import Process, Lock
+import threading
 
 
 app = Flask(__name__)
@@ -99,7 +100,7 @@ def interval():
 
 if __name__ == '__main__':
     app.debug = True
-    p = Process(target=interval).start()
+    threading.Thread(target=interval).start()
     app.run()
     
 
