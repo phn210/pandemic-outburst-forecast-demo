@@ -196,6 +196,7 @@ def index():
             
     return jsonify({"code": 1})
 
+
 def interval():
     time.sleep(5)
     i = 0
