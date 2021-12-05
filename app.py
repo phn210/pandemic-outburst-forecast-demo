@@ -133,7 +133,7 @@ def get_realtime_data():
         
 #     return jsonify({"code": 1})
 
-# @app.route('/get-province', methods=['GET', 'POST'])
+# @app.route('/fetch-province', methods=['GET', 'POST'])
 # def get_province():
 #     URL = "https://vi.wikipedia.org/wiki/B%E1%BA%A3n_m%E1%BA%ABu:D%E1%BB%AF_li%E1%BB%87u_%C4%91%E1%BA%A1i_d%E1%BB%8Bch_COVID-19_t%E1%BA%A1i_Vi%E1%BB%87t_Nam"
 #     page = requests.get(URL)
@@ -161,6 +161,11 @@ def extract_firebase_item(item):
 
 def sort_key(item):
     return item['date']
+
+@app.route("/get-province", methods=['GET', 'POST'])
+def get_province():
+    provinces = db.collection(u'provinces').get()
+    return jsonify(list(map(extract_firebase_item, provinces)))
 
 @app.route('/get-data', methods=['GET', 'POST'])
 def index():

@@ -51,5 +51,6 @@ def predict(df, x):
         "linear_pred_y" : list(map(array_to_single_index, y.tolist())),
         "linear_pred_x": linear_pred.tolist(),
         "train_data_y": list(map(array_to_single_index, y_train.tolist())),
-        "train_data_x" : X_train.tolist()
+        "train_data_x" : X_train.tolist(),
+        "dates": date
     }
