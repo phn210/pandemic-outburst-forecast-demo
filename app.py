@@ -21,9 +21,17 @@ ENV = 'dev'
 if ENV == 'dev':
     app.debug = True
 
-@app.before_first_request
-def execute_this():
-    threading.Thread(target=interval).start()
+# @app.before_first_request
+# def execute_this():
+#     threading.Thread(target=interval).start()
+
+# def interval():
+#     time.sleep(5)
+#     i = 0
+#     while True:
+#         i+=1
+#         get_realtime_data()
+#         time.sleep(24* 60 * 60)
 
 def get_realtime_data():
     provinces = db.collection(u'provinces').get()
@@ -73,6 +81,20 @@ def get_realtime_data():
             u'population': top_population,
             u'num_of_dose_per_100': top_num_of_dose_per_100
         })
+    else:
+        top_doc_ref.update({
+            u'province_id' : top_province_id,
+            u'date': datetime_object_string,
+            u'confirmed': top_infected_case,
+            u'case_of_deatch': top_case_of_death,
+            u'new_cases': top_new_cases,
+            u'total_vaccinations': top_total_vaccinations,
+            u'nose_1': top_nose_1,
+            u'nose_2': top_nose_2,
+            u'num_of_dose_delivery': top_num_of_dose_delivery,
+            u'population': top_population,
+            u'num_of_dose_per_100': top_num_of_dose_per_100
+        })
     
     for tr in trs:
         tds = tr.find_all("td")
@@ -105,62 +127,47 @@ def get_realtime_data():
                 u'population': population,
                 u'num_of_dose_per_100': num_of_dose_per_100
             })
+        else:
+            top_doc_ref.update({
+                u'province_id' : top_province_id,
+                u'date': datetime_object_string,
+                u'confirmed': top_infected_case,
+                u'case_of_deatch': top_case_of_death,
+                u'new_cases': top_new_cases,
+                u'total_vaccinations': top_total_vaccinations,
+                u'nose_1': top_nose_1,
+                u'nose_2': top_nose_2,
+                u'num_of_dose_delivery': top_num_of_dose_delivery,
+                u'population': top_population,
+                u'num_of_dose_per_100': top_num_of_dose_per_100
+            })  
        
     date_ref =  db.collection(u'crawl_date').document(datetime_object_string)
     if date_ref.get().exists == False:
         db.collection(u'crawl_date').document(datetime_object_string).set({u'value': True})
-    
-# @app.route('/fetch-data', methods=['POST', 'GET'])
-# def fetch_data():
-#     df = pd.read_csv("data/VN-covid19.csv", on_bad_lines='skip')
         
-#     dates = df['ObservationDate'].tolist()
-#     confirmed = df['Confirmed'].tolist()
-    
-#     for i in range(len(dates)):
-#         datetime_object = datetime.strptime(dates[i] + "-2021",'%d-%b-%Y').date()
-#         province_id = 0
-#         doc_ref = db.collection(u'data').document(datetime_object.__str__() + "_" + province_id.__str__())
-#         if doc_ref.get().exists:
-#             continue
-#         else:
-#             doc_ref.set({
-#                 u'province_id' : province_id,
-#                 u'date': datetime_object.__str__(),
-#                 u'confirmed': confirmed[i]
-#             })
-        
-        
-#     return jsonify({"code": 1})
-
-# @app.route('/fetch-province', methods=['GET', 'POST'])
-# def get_province():
-#     URL = "https://vi.wikipedia.org/wiki/B%E1%BA%A3n_m%E1%BA%ABu:D%E1%BB%AF_li%E1%BB%87u_%C4%91%E1%BA%A1i_d%E1%BB%8Bch_COVID-19_t%E1%BA%A1i_Vi%E1%BB%87t_Nam"
-#     page = requests.get(URL)
-#     soup = BeautifulSoup(page.content, "html.parser")
-#     table = soup.find_all(class_="tpl-blanktable")[0]
-   
-#     trs = table.find_all("tr", class_= None)
-#     tr_top = table.find_all("tr", class_="sorttop")[0]
-    
-#     i = 0
-    
-#     db.collection(u'provinces').document(tr_top.text).set({u'value': i, u'label': tr_top.text})
-#     i += 1
-    
-#     for tr in trs:
-#         tds = tr.find_all("td")
-#         print(tds[0].text)
-#         db.collection(u'provinces').document(tds[0].text).set({u'value': i, u'label': tds[0].text})
-#         i += 1
-
-#     return "DONE"
+@app.route("/click-fetch", methods=['GET', 'POST'])
+def click_fetch():
+    get_realtime_data()
+    return jsonify({"code" : 1})
 
 def extract_firebase_item(item):
     return item.to_dict()
 
+def extract_firestore_item_id(item):
+    return item.id
+
 def sort_key(item):
     return item['date']
+
+@app.route("/get-dates", methods=['GET', 'POST'])
+def get_dates():
+    dates = db.collection(u'crawl_date').get()
+    
+    extract_dates = jsonify(list(map(extract_firestore_item_id, dates)))
+    print(extract_dates)
+    return extract_dates
+
 
 @app.route("/get-province", methods=['GET', 'POST'])
 def get_province():
@@ -195,19 +202,7 @@ def index():
             })
             
     return jsonify({"code": 1})
-
-
-def interval():
-    time.sleep(5)
-    i = 0
-    while True:
-        i+=1
-        get_realtime_data()
-        time.sleep(24* 60 * 60)
         
-def start_app():
-    threading.Thread(target=app.run).start()  
-    
 
 if __name__ == '__main__':
     app.debug = True
