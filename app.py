@@ -145,11 +145,6 @@ def get_realtime_data():
     date_ref =  db.collection(u'crawl_date').document(datetime_object_string)
     if date_ref.get().exists == False:
         db.collection(u'crawl_date').document(datetime_object_string).set({u'value': True})
-        
-@app.route("/click-fetch", methods=['GET', 'POST'])
-def click_fetch():
-    get_realtime_data()
-    return jsonify({"code" : 1})
 
 def extract_firebase_item(item):
     return item.to_dict()
@@ -202,6 +197,11 @@ def index():
             })
             
     return jsonify({"code": 1})
+
+@app.route("/click-fetch", methods=['GET', 'POST'])
+def click_fetch():
+    get_realtime_data()
+    return jsonify({"code" : 1})
         
 
 if __name__ == '__main__':
