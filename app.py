@@ -65,6 +65,10 @@ def get_realtime_data():
     top_num_of_dose_per_100 = float(tds_of_tf_top[11]["data-sort-value"])
     
     datetime_object_string = datetime.today().strftime('%Y-%m-%d')
+    date_ref =  db.collection(u'crawl_date').document(datetime_object_string)
+    if date_ref.get().exists == False:
+        db.collection(u'crawl_date').document(datetime_object_string).set({u'value': True})
+    
     top_province_id = 0
     top_doc_ref = db.collection(u'data').document(datetime_object_string + "_" + top_province_id.__str__())
     if top_doc_ref.get().exists == False:
@@ -141,10 +145,6 @@ def get_realtime_data():
                 u'population': top_population,
                 u'num_of_dose_per_100': top_num_of_dose_per_100
             })  
-       
-    date_ref =  db.collection(u'crawl_date').document(datetime_object_string)
-    if date_ref.get().exists == False:
-        db.collection(u'crawl_date').document(datetime_object_string).set({u'value': True})
 
 def extract_firebase_item(item):
     return item.to_dict()
