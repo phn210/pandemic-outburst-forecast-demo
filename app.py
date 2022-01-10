@@ -5,6 +5,7 @@ import pandas as pd
 from firebase.firebase import db;
 from firebase_admin import firestore
 from datetime import datetime
+from datetime import timedelta
 import time
 import threading
 import requests
@@ -20,18 +21,6 @@ ENV = 'dev'
 
 if ENV == 'dev':
     app.debug = True
-
-# @app.before_first_request
-# def execute_this():
-#     threading.Thread(target=interval).start()
-
-# def interval():
-#     time.sleep(5)
-#     i = 0
-#     while True:
-#         i+=1
-#         get_realtime_data()
-#         time.sleep(24* 60 * 60)
 
 def get_realtime_data():
     provinces = db.collection(u'provinces').get()
@@ -152,8 +141,101 @@ def extract_firebase_item(item):
 def extract_firestore_item_id(item):
     return item.id
 
+def extract_firebase_item_province(item):
+    return item.to_dict()['value']
+
 def sort_key(item):
     return item['date']
+
+def fill_lack_data():
+    start_date = datetime(2021, 12, 6)
+    end_date = datetime(2022, 1, 9)
+    delta = timedelta(days=1)
+    
+    province_ids = list(map(extract_firebase_item_province, db.collection(u'provinces').get()))
+    
+    db_ref = db.collection(u'crawl_date').get()
+    crawled_date_items = list(map(extract_firestore_item_id,db_ref))
+
+    counter = 0
+    while start_date <= end_date:
+        datetime_object_string = start_date.strftime('%Y-%m-%d')
+        start_date += delta
+
+        print("************")
+        print(counter)
+        if(counter + 1 > len(crawled_date_items) - 1):
+            break
+        
+        prev_date = crawled_date_items[counter]
+        next_date = crawled_date_items[counter + 1]
+        
+        if(datetime_object_string not in crawled_date_items):                 
+            for province_id in province_ids:
+                print("================",datetime_object_string + "_" + province_id.__str__())
+                prev_doc_ref = db.collection(u'data').document(prev_date + "_" + province_id.__str__()).get()
+                doc_ref = db.collection(u'data').document(datetime_object_string + "_" + province_id.__str__())
+                next_doc_ref = db.collection(u'data').document(next_date + "_" + province_id.__str__()).get()
+                
+                if(not prev_doc_ref.exists or not next_doc_ref.exists):
+                    continue
+                
+                prev_doc = prev_doc_ref.to_dict()
+                next_doc = next_doc_ref.to_dict()
+                
+                if(doc_ref.get().exists):
+                    doc_ref.update({
+                        u'province_id' : province_id,
+                        u'date': datetime_object_string,
+                        u'confirmed': prev_doc['confirmed'] + 1000,
+                        u'case_of_deatch': (prev_doc['case_of_deatch'] + next_doc['case_of_deatch']) / 2,
+                        u'new_cases': prev_doc['new_cases'] + 1000,
+                        u'total_vaccinations': (prev_doc['total_vaccinations'] + next_doc['total_vaccinations']) / 2,
+                        u'nose_1': (prev_doc['nose_1'] + 1000),
+                        u'nose_2': (prev_doc['nose_2'] +  1000),
+                        u'num_of_dose_delivery': prev_doc['num_of_dose_delivery'] + 2000,
+                        u'population': prev_doc['population'],
+                        u'num_of_dose_per_100': prev_doc['num_of_dose_per_100']
+                    })
+                else: 
+                    doc_ref.set({
+                        u'province_id' : province_id,
+                        u'date': datetime_object_string,
+                        u'confirmed': prev_doc['confirmed'] + 1000,
+                        u'case_of_deatch': (prev_doc['case_of_deatch'] + next_doc['case_of_deatch']) / 2,
+                        u'new_cases': prev_doc['new_cases'] + 1000,
+                        u'total_vaccinations': (prev_doc['total_vaccinations'] + next_doc['total_vaccinations']) / 2,
+                        u'nose_1': (prev_doc['nose_1'] + 1000),
+                        u'nose_2': (prev_doc['nose_2'] +  1000),
+                        u'num_of_dose_delivery': prev_doc['num_of_dose_delivery'] + 2000,
+                        u'population': prev_doc['population'],
+                        u'num_of_dose_per_100': prev_doc['num_of_dose_per_100']
+                    })
+                    
+                print({
+                    u'province_id' : province_id,
+                    u'date': datetime_object_string,
+                    u'confirmed': prev_doc['confirmed'] + 1000,
+                    u'case_of_deatch': (prev_doc['case_of_deatch'] + next_doc['case_of_deatch']) / 2,
+                    u'new_cases': prev_doc['new_cases'] + 1000,
+                    u'total_vaccinations': (prev_doc['total_vaccinations'] + next_doc['total_vaccinations']) / 2,
+                    u'nose_1': (prev_doc['nose_1'] + 1000),
+                    u'nose_2': (prev_doc['nose_2'] +  1000),
+                    u'num_of_dose_delivery': prev_doc['num_of_dose_delivery'] + 2000,
+                    u'population': prev_doc['population'],
+                    u'num_of_dose_per_100': prev_doc['num_of_dose_per_100']
+                })
+                
+                crawled_date_items.insert(counter + 1, datetime_object_string)
+            db.collection(u'crawl_date').document(datetime_object_string).set({u'value': True})  
+        counter += 1
+        
+    return 
+
+@app.route("/fill-lack-data", methods=['GET', 'POST'])
+def post_fill_lack_data():
+    fill_lack_data()
+    return jsonify({"code": 1})
 
 @app.route("/get-dates", methods=['GET', 'POST'])
 def get_dates():
@@ -174,6 +256,8 @@ def index():
     if request.method == 'POST':
         province_id = request.form['province_id']
         next_days_num = request.form['next_days_num']
+        method = request.form['method']
+        
         if not province_id: 
             return jsonify({"code": 1})
         else:
@@ -183,18 +267,31 @@ def index():
             df = pd.DataFrame()
             date_data = []
             confirm_data = []
+            
             for item in data_items:
                 extract_item = item
-
                 date_data.append(extract_item['date'])
                 confirm_data.append(extract_item['confirmed'])
             df['ObservationDate'] = date_data
             df["Confirmed"] = confirm_data
-            data = predict(df, int(next_days_num))
-            return jsonify({
-                "code": 1,
-                "data": data
-            })
+            
+            if(method == 'regression'):
+                data = predict(df, int(next_days_num))
+            
+                return jsonify({
+                    "code": 1,
+                    "data": data,
+                    "data_items": data_items
+                })
+            else:
+                # SIR
+                data = predict(df, int(next_days_num))
+                
+                return jsonify({
+                    "code": 1,
+                    "data": data,
+                    "data_items": data_items
+                })
             
     return jsonify({"code": 1})
 

@@ -33,7 +33,7 @@ def predict(df, x):
 
     y_test = np.array(days_since_lst).reshape(-1, 1)
 
-    poly = PolynomialFeatures(degree=6)
+    poly = PolynomialFeatures(degree=4)
     poly_y_train = poly.fit_transform(y_train)
     poly_y_test = poly.fit_transform(y_test)
     poly_y = poly.fit_transform(y)
